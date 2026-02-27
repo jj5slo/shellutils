@@ -1,17 +1,27 @@
 #!/bin/bash
 
-# 引数がない場合に使い方を表示
+# 引数が0個（何も指定されなかった）場合の処理
 if [ $# -eq 0 ]; then
-    echo "Usage: epstopng file1.eps file2.eps ..."
-    exit 1
+    # nullglobを有効化 (該当ファイルがない場合に "*.eps" という文字になるのを防ぐ)
+    shopt -s nullglob
+    # カレントディレクトリの .eps / .EPS をすべて「引数」としてセットし直す
+    set -- *.[eE][pP][sS]
+    shopt -u nullglob
+
+    # セットし直した結果、それでも引数が0個なら（EPSファイルが存在しない場合）
+    if [ $# -eq 0 ]; then
+        echo "No EPS files found in the current directory."
+        exit 1
+    fi
+    echo "Auto-detecting all EPS files..."
 fi
 
-# 渡されたすべての引数に対してループ処理
+# ここから下は前回と同じ（渡された、あるいは自動取得したファイル群を処理）
 for arg in "$@"; do
-    # 拡張子が .eps かどうかチェック（大文字小文字を区別しない）
     if [[ "$arg" == *.[eE][pP][sS] ]]; then
-        filename=$(basename "$arg" .eps)
-        filename=$(basename "$filename" .EPS) # 大文字対策
+        # 拡張子を取り除いたファイル名を取得（.eps と .EPS 両方に対応する書き方）
+        filename=$(basename "$arg")
+        filename="${filename%.*}"
 
         echo "Processing: $arg"
 
@@ -21,8 +31,8 @@ for arg in "$@"; do
         # 2. PDFをPNGに変換 (300dpi)
         pdftoppm "$filename.pdf" -r 300 -png > "$filename.png"
 
-        # 中間ファイルのPDFを削除（不要なら残してもOK）
-        rm "$filename.pdf"
+        # 中間ファイルのPDFを削除
+        # rm "$filename.pdf"
     else
         echo "Skip: $arg (Not an EPS file)"
     fi
