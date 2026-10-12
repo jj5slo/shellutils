@@ -24,7 +24,8 @@ process_pdf() {
 	# 自動モードの場合は更新日時を比較
 	if [ "$auto_mode" -eq 1 ]; then
 		shopt -s nullglob
-		local existing_pngs=("${output_prefix}_"*.png)
+		# サフィックスなし・あり双方の既存PNGを検索
+		local existing_pngs=("${output_prefix}.png" "${output_prefix}_"*.png)
 		shopt -u nullglob
 
 		# 既に変換済みのPNGが存在し、かつPDFより新しければスキップ
@@ -34,10 +35,20 @@ process_pdf() {
 		fi
 	fi
 
-	echo "Processing: $pdf_file -> ${output_prefix}_*.png"
+	echo "Processing: $pdf_file"
 
 	# PDFを複数ページのPNGに変換 (300dpi, 区切り文字を "_" に指定)
 	pdftoppm "$pdf_file" -r 300 -png -sep "_" "$output_prefix"
+
+	# 生成されたPNGファイル一覧を取得
+	shopt -s nullglob
+	local generated_pngs=("${output_prefix}_"*.png)
+	shopt -u nullglob
+
+	# 1ページのみ（生成された画像が1枚）の場合はサフィックスを取り除いてリネーム
+	if [ ${#generated_pngs[@]} -eq 1 ]; then
+		mv -f "${generated_pngs[0]}" "${output_prefix}.png"
+	fi
 }
 
 # ----------------------------------------
@@ -97,3 +108,4 @@ for arg in "$@"; do
 done
 
 echo "Done!"
+
